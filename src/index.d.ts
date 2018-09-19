@@ -1,12 +1,45 @@
 /// <reference lib="es2018" />
 /// <reference lib="esnext.asynciterable" />
 
-import { IsFinite, Prepend, Repeat, Reverse } from "typescript-tuple";
+import { Append, IsFinite, Prepend, Repeat, Reverse } from "typescript-tuple";
 import { FromTuple as UnionFromTuple, RangeZero as UnionRange } from "typescript-union";
 
 type IterableLike<T> = Iterable<T> | T[] | { [key: string]: T; } | { [key: number]: T; };
 type AsyncIterableLike<T> = AsyncIterable<T> | IterableLike<T>;
 type ReasonableNumber = UnionRange<32>;
+
+type BatchReturnElement<N extends ReasonableNumber, Iter extends IterableLike<any>> =
+  Iter extends any[] ? IsFinite<Iter,
+    UnionFromTuple<_BatchReturnElementsByReversedTuple<N, Reverse<Iter>>>,
+    Iter extends Array<infer T> ? T[] : never
+  > :
+  Iter extends IterableLike<infer T> ? T[] :
+  never;
+
+type _BatchReturnElementsByReversedTuple<
+  N extends ReasonableNumber,
+  ReversedTuple extends any[],
+  ElementHolder extends any[] = [],
+  TupleHolder extends any[][] = []
+> = {
+  empty: Prepend<TupleHolder, ElementHolder>,
+  fit: _BatchReturnElementsByReversedTuple<N, ReversedTuple, [], Prepend<TupleHolder, ElementHolder>>,
+  unfit: ((..._: Reverse<ReversedTuple>) => any) extends ((_: infer First, ..._1: infer Rest) => any)
+    ? _BatchReturnElementsByReversedTuple<
+      N,
+      Reverse<Rest>,
+      Append<ElementHolder, First>,
+      TupleHolder
+    >
+    : never,
+  infinite: ReversedTuple extends Array<infer T>
+    ? [T[]]
+    : never
+}[
+  ReversedTuple extends [] ? "empty" :
+  ElementHolder["length"] extends N ? "fit" :
+  "unfit"
+];
 
 /**
  * Function signature of `permutations` and `combinations`
@@ -54,8 +87,12 @@ export declare function keys(iterable: any): IterableIterator<any>;
 export declare function values(iterable: any): IterableIterator<any>;
 export declare function entries(iterable: any): IterableIterator<any>;
 
-export declare function batch<T>(n: number): (iterable: IterableLike<T>) => IterableIterator<T[]>;
-export declare function batch<T>(n: number, iterable: IterableLike<T>): IterableIterator<T[]>;
+export declare function batch<N extends ReasonableNumber>(n: N):
+  <Iter extends IterableLike<any>>(iterable: Iter) => IterableIterator<BatchReturnElement<Iter>>;
+export declare function batch<N extends ReasonableNumber, Iter extends IterableLike<T>>(
+  n: N,
+  iterable: Iter
+): IterableIterator<BatchReturnElement<Iter>>;
 
 export declare function chain<T>(...iterables: Array<IterableLike<T>>): IterableIterator<T>;
 export declare function concat<T>(...iterables: Array<IterableLike<T>>): IterableIterator<T>;
@@ -195,8 +232,12 @@ export declare function zip<T>(...iterables: Array<IterableLike<T>>): IterableIt
 export declare function iter<T>(iterable: IterableLike<T>): IterableIterator<T>;
 
 // Async
-export declare function asyncBatch<T>(n: number): (iterable: AsyncIterableLike<T>) => AsyncIterableIterator<T>;
-export declare function asyncBatch<T>(n: number, iterable: AsyncIterableLike<T>): AsyncIterableIterator<T>;
+export declare function asyncBatch<N extends ReasonableNumber>(n: N):
+  <Iter extends IterableLike<any>>(iterable: Iter) => IterableIterator<BatchReturnElement<Iter>>;
+export declare function asyncBatch<N extends ReasonableNumber, Iter extends AsyncIterableLike<T>>(
+  n: N,
+  iterable: Iter
+): AsyncIterableIterator<BatchReturnElement<Iter>>;
 
 export declare function asyncChain<T>(...iterables: Array<AsyncIterableLike<T>>): AsyncIterableIterator<T>;
 export declare function asyncConcat<T>(...iterables: Array<AsyncIterableLike<T>>): AsyncIterableIterator<T>;
