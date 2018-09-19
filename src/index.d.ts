@@ -9,12 +9,16 @@ type AsyncIterableLike<T> = AsyncIterable<T> | IterableLike<T>;
 type ReasonableNumber = UnionRange<32>;
 
 type BatchReturnElement<N extends ReasonableNumber, Iter extends IterableLike<any>> =
-  Iter extends any[] ? IsFinite<Iter,
-    UnionFromTuple<_BatchReturnElementsByReversedTuple<N, Reverse<Iter>>>,
-    Iter extends Array<infer T> ? T[] : never
-  > :
-  Iter extends IterableLike<infer T> ? T[] :
-  never;
+  N extends 0
+    ? Iter extends any[] ? Iter :
+      Iter extends IterableLike<infer T> ? T[] :
+      never
+    : Iter extends any[] ? IsFinite<Iter,
+        UnionFromTuple<_BatchReturnElementsByReversedTuple<N, Reverse<Iter>>>,
+        Iter extends Array<infer T> ? T[] : never
+      > :
+      Iter extends IterableLike<infer T> ? T[] :
+      never;
 
 type _BatchReturnElementsByReversedTuple<
   N extends ReasonableNumber,
@@ -88,7 +92,7 @@ export declare function values(iterable: any): IterableIterator<any>;
 export declare function entries(iterable: any): IterableIterator<any>;
 
 export declare function batch<N extends ReasonableNumber>(n: N):
-  <Iter extends IterableLike<any>>(iterable: Iter) => IterableIterator<BatchReturnElement<Iter>>;
+  <Iter extends IterableLike<any>>(iterable: Iter) => IterableIterator<BatchReturnElement<N, Iter>>;
 export declare function batch<N extends ReasonableNumber, Iter extends IterableLike<T>>(
   n: N,
   iterable: Iter
@@ -233,7 +237,7 @@ export declare function iter<T>(iterable: IterableLike<T>): IterableIterator<T>;
 
 // Async
 export declare function asyncBatch<N extends ReasonableNumber>(n: N):
-  <Iter extends IterableLike<any>>(iterable: Iter) => IterableIterator<BatchReturnElement<Iter>>;
+  <Iter extends IterableLike<any>>(iterable: Iter) => AsyncIterableIterator<BatchReturnElement<N, Iter>>;
 export declare function asyncBatch<N extends ReasonableNumber, Iter extends AsyncIterableLike<T>>(
   n: N,
   iterable: Iter
